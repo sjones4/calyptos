@@ -13,8 +13,17 @@ from eucadeploy.plugins.debugger.debuggerplugin import DebuggerPlugin
 
 class EucalyptusSosReports(DebuggerPlugin):
     def debug(self):
-        all_hosts = self.component_deployer.all_hosts
         roles = self.component_deployer.get_roles()
+
+        # Create set of Eucalytpus only componnents
+        euca_components = ['user-facing', 'cluster-controller',
+                           'storage-controller', 'node-controller']
+        if roles['walrus']:
+            euca_components.append('walrus')
+
+        all_hosts = roles['clc']
+        for component in euca_components:
+            all_hosts.update(roles[component]) 
         """
         Check to make sure sos and eucalyptus-sos-plugins
         packages are installed
