@@ -76,11 +76,7 @@ class Chef(DeployerPlugin):
                   self.environment_name + '.json') as env_file:
             return json.loads(env_file.read())
 
-    def _run_chef_on_hosts(self, hosts):
-        with hide(*self.hidden_outputs):
-            execute(self.chef_manager.push_deployment_data, hosts=hosts)
-        with warn_only():
-            results = execute(self.chef_manager.run_chef_client, hosts=hosts)
+    def _check_results(self, results):
         failed = False
         for machine, result in results.iteritems():
             if result.succeeded:
@@ -88,11 +84,19 @@ class Chef(DeployerPlugin):
             if result.failed:
                 failed = True
                 fail_log_name = 'calyptos-failure-' + machine + '.log'
-                print red('Chef Client failed on ' + machine + ' log available at ' +  fail_log_name)
+                print red('Chef Client failed on ' + machine + ' log available at ' + fail_log_name)
                 with open(fail_log_name, 'w') as file:
                     file.write(result.stdout)
         if failed:
+            print red('Installation is in a partially configured state, examine the log files for problems and rerun.')
             exit(1)
+
+    def _run_chef_on_hosts(self, hosts):
+        with hide(*self.hidden_outputs):
+            execute(self.chef_manager.push_deployment_data, hosts=hosts)
+        with warn_only():
+            results = execute(self.chef_manager.run_chef_client, hosts=hosts)
+        self._check_results(results)
         execute(self.chef_manager.pull_node_info, hosts=hosts)
         return results
 
@@ -105,7 +109,7 @@ class Chef(DeployerPlugin):
                  self.chef_manager.pull_node_info]
         for method in order:
             with hide(*self.hidden_outputs):
-                execute(method, hosts=self.all_hosts)
+                self._check_results(execute(method, hosts=self.all_hosts))
 
     def bootstrap(self):
         # Install CLC and Initialize DB
