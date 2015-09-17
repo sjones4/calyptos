@@ -13,7 +13,8 @@ from calyptos.rolebuilder import RoleBuilder
 class Chef(DeployerPlugin):
     def __init__(self, password, environment_file='etc/environment.yml',
                  config_file='config.yml', debug=False, branch='euca-4.1',
-                 cookbook_repo='https://github.com/eucalyptus/eucalyptus-cookbook', update_repo=True):
+                 cookbook_repo='https://github.com/eucalyptus/eucalyptus-cookbook',
+                 update_repo=True, gateway=None):
         self.chef_repo_dir = 'chef-repo'
         self.environment_file = environment_file
         if debug:
@@ -23,10 +24,11 @@ class Chef(DeployerPlugin):
         self.role_builder = RoleBuilder(environment_file)
         self.roles = self.role_builder.get_roles()
         self.all_hosts = self.roles['all']
+        self.gateway = gateway
         self._prepare_fs(cookbook_repo, branch, debug, update_repo)
         self.environment_name = self._write_json_environment()
-        self.chef_manager = ChefManager(password, self.environment_name,
-                                        self.roles['all'])
+        self.chef_manager = ChefManager(password=password, environment_name=self.environment_name,
+                                        hosts=self.roles['all'], gateway=self.gateway)
         self.config = self.get_chef_config(config_file)
 
     def _prepare_fs(self, cookbook_repo, branch, debug, update_repo):

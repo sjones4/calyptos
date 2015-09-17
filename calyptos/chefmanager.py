@@ -28,11 +28,12 @@ class FailedToFindNodeException(Exception):
 class ChefManager():
     CHEF_VERSION = "11.16.4"
 
-    def __init__(self, password, environment_name, hosts, debug=False):
+    def __init__(self, password, environment_name, hosts, gateway=None, debug=False):
         env.password = password
         env.user = 'root'
         env.parallel = True
         env.pool_size = 20
+        env.gateway = gateway
         env.disable_known_hosts = True
         self.environment_name = environment_name
         self.current_path, self.folder_name = os.path.split(os.getcwd())
