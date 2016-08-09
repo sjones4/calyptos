@@ -11,6 +11,7 @@ class RoleBuilder():
                  'cluster-controller',
                  'storage-controller',
                  'node-controller',
+                 'midonet-cluster',
                  'midonet-api',
                  'midolman',
                  'mido-zookeeper',
@@ -22,6 +23,8 @@ class RoleBuilder():
                  'riak-node',
                  'haproxy',
                  'nginx',
+                 'zookeeper',
+                 'cassandra',
                  'all']
 
     def __init__(self, environment_file='environment.yml'):
@@ -47,6 +50,18 @@ class RoleBuilder():
     def get_riak_attributes(self):
         try:
             return self.env_dict['riakcs_cluster']
+        except:
+            return None
+
+    def get_zookeeper(self):
+        try:
+            return self.env_dict['zookeeper']
+        except:
+            return None
+
+    def get_cassandra(self):
+        try:
+            return self.env_dict['cassandra']
         except:
             return None
 
@@ -81,6 +96,8 @@ class RoleBuilder():
         euca_attributes = self.get_euca_attributes()
         ceph_attributes = self.get_ceph_attributes()
         riak_attributes = self.get_riak_attributes()
+        zookeeper = self.get_zookeeper()
+        cassandra = self.get_cassandra()
 
         roles['all'] = set([])
 
@@ -188,28 +205,26 @@ class RoleBuilder():
                     roles['cluster'][name].add(node)
                 roles['all'].update(roles['cluster'][name])
 
-            # Add Midokura roles
-            midokura_attributes = self.env_dict.get('midokura', None)
-            if midokura_attributes and euca_attributes['network']['mode'] == 'VPCMIDO':
-                mido = euca_attributes['network']['config-json']['Mido']
-                mido_gw_hostname = mido.get('EucanetdHost', None)
-                midolman_host_mapping = midokura_attributes.get('midolman-host-mapping', None)
-                if midolman_host_mapping:
-                    mido_api_ip = midolman_host_mapping.get(mido_gw_hostname, None)
-                    if not mido_api_ip:
-                        raise Exception('Unable to find midonet-api ({0}) host '
-                                        'in midolman-host-mapping'.format(mido_gw_hostname))
-                    # Add the host IP for the midonet gw
-                    roles['midonet-api'].add(mido_api_ip)
-                    # Add hosts from the midonet host mapping, and all nodes
-                    for hostname, host_ip in midolman_host_mapping.iteritems():
-                        roles['midolman'].add(host_ip)
-                    for node in roles['node-controller']:
-                        roles['midolman'].add(node)
-                for host in self.env_dict.get('midokura', {}).get('zookeepers', []):
-                    roles['mido-zookeeper'].add(str(host).split(':')[0])
-                    roles['all'].add(str(host).split(':')[0])
-                for host in self.env_dict.get('midokura', {}).get('cassandras', []):
-                    roles['mido-cassandra'].add(host)
-                    roles['all'].add(host)
+        if zookeeper:
+            roles['zookeeper'] = set(zookeeper['topology'])
+            for zk in zookeeper['topology']:
+                roles['all'].add(zk)
+
+        if cassandra:
+            roles['cassandra'] = set(cassandra['topology'])
+            for cs in cassandra['topology']:
+                roles['all'].add(cs)
+
+        if euca_attributes['network']['mode'] == 'VPCMIDO':
+            mido = euca_attributes['network']['config-json']['Mido']
+
+            # in VPC mode, midonet-cluster/midonet-api host is essentially a
+            # CLC host where eucanetd is running, unless it changes in future
+            midonet_cluster = euca_attributes['topology']['clc-1']
+            roles['midonet-cluster'].add(midonet_cluster)
+
+            midonet = euca_attributes.get('midonet', None)
+            midolman_host_mapping = midonet.get('midolman-host-mapping', None)
+            for hostname, host_ip in midolman_host_mapping.iteritems():
+                roles['midolman'].add(host_ip)
         return roles

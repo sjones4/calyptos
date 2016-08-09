@@ -2,13 +2,19 @@
 deployer:
   chef:
     roles:
+      - mon-bootstrap:
+        - ceph-cluster::mon
       - clc:
         - eucalyptus::cloud-controller
         - eucalyptus::register-components
+      - zookeeper:
+        - eucalyptus::midokura-repo
+        - zookeeper::default
+      - cassandra:
+        - eucalyptus::midokura-repo
+        - cassandra::default
       - user-facing:
         - eucalyptus::user-facing
-      - console:
-        - eucalyptus::user-console
       - walrus:
         - eucalyptus::walrus
       - cluster-controller:
@@ -17,13 +23,18 @@ deployer:
         - eucalyptus::storage-controller
       - node-controller:
         - eucalyptus::node-controller
+      - midonet-cluster:
+        - eucalyptus::midokura-repo
+        - eucalyptus::midonet-cluster
+        - eucalyptus::midolman
       - midolman:
-        - midokura::midolman
+        - eucalyptus::midokura-repo
+        - eucalyptus::midolman
+      - console:
+        - eucalyptus::user-console
       - midonet-api:
         - midokura::midolman
         - midokura::midonet-api
-      - mon-bootstrap:
-        - ceph-cluster::mon
       - ceph-mons:
         - ceph-cluster::mon
       - ceph-osds:

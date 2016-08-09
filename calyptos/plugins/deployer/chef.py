@@ -151,6 +151,18 @@ class Chef(DeployerPlugin):
             mido_cassandra_hosts = self.roles['mido-cassandra']
             self.chef_manager.add_to_run_list(mido_cassandra_hosts, ['midokura::cassandra'])
             self._run_chef_on_hosts(mido_cassandra_hosts)
+        elif self.roles['zookeeper']:
+            zookeepers = self.roles['zookeeper']
+            self.chef_manager.add_to_run_list(zookeepers,
+                                              self._get_recipe_list('zookeeper'))
+            self._run_chef_on_hosts(zookeepers)
+            self.chef_manager.clear_run_list(zookeepers)
+        elif self.roles['cassandra']:
+            cassandras = self.roles['cassandra']
+            self.chef_manager.add_to_run_list(cassandras,
+                                              self._get_recipe_list('cassandra'))
+            self._run_chef_on_hosts(cassandras)
+            self.chef_manager.clear_run_list(cassandras)
 
         if self.roles['clc']:
             self.chef_manager.clear_run_list(self.all_hosts)
@@ -162,15 +174,17 @@ class Chef(DeployerPlugin):
                 # but I think we want to avoid running the midolman step below a
                 # second time on the clc, figure out how to remove the clc from that
                 # midolman_hosts list
-                self.chef_manager.add_to_run_list(clc, ['midokura::midolman'])
-                self.chef_manager.add_to_run_list(clc, ['midokura::midonet-api'])
+                # self.chef_manager.add_to_run_list(clc, self._get_recipe_list('midolman'))
+                self.chef_manager.add_to_run_list(clc, self._get_recipe_list('midonet-cluster'))
             self._run_chef_on_hosts(clc)
+            self.chef_manager.clear_run_list(clc)
 
         if self.roles['midolman']:
-            midolman_hosts = self.roles['midolman']
-            self.chef_manager.add_to_run_list(midolman_hosts,
-                                              ['midokura::midolman'])
-            self._run_chef_on_hosts(midolman_hosts)
+            midolmans = self.roles['midolman']
+            self.chef_manager.add_to_run_list(midolmans,
+                                              self._get_recipe_list('midolman'))
+            self._run_chef_on_hosts(midolmans)
+            self.chef_manager.clear_run_list(midolmans)
 
         print green('Bootstrap has completed successfully. Continue on to the provision phase')
 
@@ -224,7 +238,7 @@ class Chef(DeployerPlugin):
             clc = self.roles['clc']
             self.chef_manager.add_to_run_list(clc, ['eucalyptus::configure'])
             if self.role_builder.get_euca_attributes()['network']['mode'] == 'VPCMIDO':
-                self.chef_manager.add_to_run_list(clc, ['midokura::create-first-resources'])
+                self.chef_manager.add_to_run_list(clc, ['eucalyptus::configure-vpc'])
             self._run_chef_on_hosts(clc)
 
         if self.roles['clc']:
@@ -246,9 +260,17 @@ class Chef(DeployerPlugin):
             self.chef_manager.add_to_run_list(self.all_hosts, ['ceph-cluster::nuke'])
         if self.roles['haproxy']:
             self.chef_manager.add_to_run_list(self.all_hosts, ['haproxy::nuke'])
-        if (self.roles['midolman'] or self.roles['mido-cassandra'] or
-                self.roles['mido-zookeeper'] or self.roles['midonet-api']):
-            self.chef_manager.add_to_run_list(self.all_hosts, ['midokura::nuke'])
+        if self.roles['zookeeper']:
+            self.chef_manager.add_to_run_list(self.all_hosts, ['zookeeper::nuke'])
+        if self.roles['cassandra']:
+            self.chef_manager.add_to_run_list(self.all_hosts, ['cassandra::nuke'])
+        if self.roles['midonet-cluster']:
+            self.chef_manager.add_to_run_list(self.all_hosts, ['eucalyptus::midonet-nuke'])
+        if self.roles['midolman']:
+            self.chef_manager.add_to_run_list(self.all_hosts, ['eucalyptus::midolman-nuke'])
+        # if (self.roles['midolman'] or self.roles['mido-cassandra'] or
+        #         self.roles['mido-zookeeper'] or self.roles['midonet-api']):
+        #     self.chef_manager.add_to_run_list(self.all_hosts, ['midokura::nuke'])
         self._run_chef_on_hosts(self.all_hosts)
         with lcd('chef-repo'):
             local('knife node bulk delete -z -E {0} -y ".*"'.format(self.environment_name))
