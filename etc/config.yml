@@ -2,19 +2,22 @@
 deployer:
   chef:
     roles:
-      - mon-bootstrap:
-        - ceph-cluster::mon
-      - clc:
-        - eucalyptus::cloud-controller
-        - eucalyptus::register-components
       - zookeeper:
         - eucalyptus::midokura-repo
         - zookeeper::default
       - cassandra:
         - eucalyptus::midokura-repo
         - cassandra::default
-      - user-facing:
-        - eucalyptus::user-facing
+      - clc:
+        - eucalyptus::cloud-controller
+        - eucalyptus::register-components
+      - midonet-cluster:
+        - eucalyptus::midokura-repo
+        - eucalyptus::midonet-cluster
+        - eucalyptus::midolman
+      - midolman:
+        - eucalyptus::midokura-repo
+        - eucalyptus::midolman
       - walrus:
         - eucalyptus::walrus
       - cluster-controller:
@@ -23,40 +26,11 @@ deployer:
         - eucalyptus::storage-controller
       - node-controller:
         - eucalyptus::node-controller
-      - midonet-cluster:
-        - eucalyptus::midokura-repo
-        - eucalyptus::midonet-cluster
-        - eucalyptus::midolman
-      - midolman:
-        - eucalyptus::midokura-repo
-        - eucalyptus::midolman
+      - user-facing:
+        - eucalyptus::user-facing
       - console:
         - eucalyptus::user-console
-      - midonet-api:
-        - midokura::midolman
-        - midokura::midonet-api
-      - ceph-mons:
-        - ceph-cluster::mon
-      - ceph-osds:
-        - ceph-cluster::osd
-      - riak-head:
-        - riakcs-cluster::ttyfix
-        - riak-cs::package
-        - riak
-        - sysctl
-        - riak-cs
-        - riak-cs::stanchion
-        - riak-cs::control
-        - riak-cs-create-admin-user
-        - riakcs-cluster::credentials
-        - riakcs-cluster::sync
-      - riak-node:
-        - riakcs-cluster::ttyfix
-        - riakcs-cluster::sync
-        - riak-cs::package
-        - riak
-        - sysctl
-        - riak-cs
-        - riakcs-cluster::mergecreds
-      - haproxy:
-        - haproxy::default
+      - configure-eucalyptus:
+        - eucalyptus::configure
+      - configure-vpc:
+        - eucalyptus::configure-vpc

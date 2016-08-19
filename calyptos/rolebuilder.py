@@ -12,10 +12,7 @@ class RoleBuilder():
                  'storage-controller',
                  'node-controller',
                  'midonet-cluster',
-                 'midonet-api',
                  'midolman',
-                 'mido-zookeeper',
-                 'mido-cassandra',
                  'mon-bootstrap',
                  'ceph-mons',
                  'ceph-osds',
@@ -158,8 +155,13 @@ class RoleBuilder():
             topology = euca_attributes['topology']
 
             # Add CLC
-            roles['clc'] = set([topology['clc-1']])
-            roles['all'].add(topology['clc-1'])
+            roles['clc'] = set(topology['clc'])
+            roles['configure-eucalyptus'] = set()
+            for clc in topology['clc']:
+                roles['all'].add(clc)
+                # Eucalyptus needs to be configure once
+                if len(roles['configure-eucalyptus']) < 1:
+                    roles['configure-eucalyptus'].add(clc)
 
             # Add UFS
             roles['user-facing'] = set(topology['user-facing'])
@@ -173,9 +175,13 @@ class RoleBuilder():
                     roles['all'].add(console)
 
             # Add Walrus
-            if 'walrus' in topology:
-                roles['walrus'] = set([topology['walrus']])
-                roles['all'].add(topology['walrus'])
+            if 'objectstorage' in topology:
+                provider_client = topology['objectstorage']['providerclient']
+                if provider_client:
+                    walrus_backends = topology['objectstorage']['walrusbackend']
+                    roles['walrus'] = set(walrus_backends)
+                    for walrus in walrus_backends:
+                        roles['all'].add(walrus)
             else:
                 # No walrus defined assuming RiakCS
                 roles['walrus'] = set()
@@ -183,21 +189,24 @@ class RoleBuilder():
             # Add cluster level components
             for name in topology['clusters']:
                 roles['cluster'] = {}
-                if 'cc-1' in topology['clusters'][name]:
-                    cc = topology['clusters'][name]['cc-1']
-                    roles['cluster-controller'].add(cc)
+                if 'cc' in topology['clusters'][name]:
+                    cc = topology['clusters'][name]['cc']
+                    for c in cc:
+                        roles['cluster-controller'].add(c)
                 else:
                     raise IndexError("Unable to find CC in topology for cluster " + name)
 
-                if 'sc-1' in topology['clusters'][name]:
-                    sc = topology['clusters'][name]['sc-1']
-                    roles['storage-controller'].add(sc)
+                if 'sc' in topology['clusters'][name]:
+                    sc = topology['clusters'][name]['sc']
+                    for s in sc:
+                        roles['storage-controller'].add(s)
                 else:
                     raise IndexError("Unable to find SC in topology for cluster " + name)
 
-                roles['cluster'][name] = set([cc, sc])
+                roles['cluster'][name] = set(cc)
+                roles['cluster'][name].update(sc)
                 if 'nodes' in topology['clusters'][name]:
-                    nodes = topology['clusters'][name]['nodes'].split()
+                    nodes = topology['clusters'][name]['nodes']
                 else:
                     raise IndexError("Unable to find nodes in topology for cluster " + name)
                 for node in nodes:
@@ -216,12 +225,15 @@ class RoleBuilder():
                 roles['all'].add(cs)
 
         if euca_attributes['network']['mode'] == 'VPCMIDO':
-            mido = euca_attributes['network']['config-json']['Mido']
-
             # in VPC mode, midonet-cluster/midonet-api host is essentially a
             # CLC host where eucanetd is running, unless it changes in future
-            midonet_cluster = euca_attributes['topology']['clc-1']
-            roles['midonet-cluster'].add(midonet_cluster)
+            midonet_cluster = euca_attributes['topology']['clc']
+            roles['configure-vpc'] = set()
+            for mc in midonet_cluster:
+                roles['midonet-cluster'].add(mc)
+                # VPC needs to be configure once from midonet-cluster
+                if len(roles['configure-vpc']) < 1:
+                    roles['configure-vpc'].add(mc)
 
             midonet = euca_attributes.get('midonet', None)
             midolman_host_mapping = midonet.get('midolman-host-mapping', None)
