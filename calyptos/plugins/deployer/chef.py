@@ -141,6 +141,9 @@ class Chef(DeployerPlugin):
                 print red('Re-run the bootstrap step and ensure that it is successful')
                 exit(1)
 
+    def bootstrap(self):
+        pass
+
     def provision(self):
         # self._pre_provision_check()
         for role_dict in self.config['roles']:
