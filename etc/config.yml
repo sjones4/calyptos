@@ -34,3 +34,5 @@ deployer:
         - eucalyptus::configure
       - configure-vpc:
         - eucalyptus::configure-vpc
+      - setup-admin-creds:
+        - eucalyptus::setupcreds
