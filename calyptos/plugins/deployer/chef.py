@@ -1,6 +1,6 @@
 import json
 from fabric.operations import local
-from fabric.colors import red, green, cyan
+from fabric.colors import red, green, cyan, yellow
 import yaml
 from deployerplugin import DeployerPlugin
 from fabric.context_managers import hide, warn_only, lcd
@@ -148,15 +148,18 @@ class Chef(DeployerPlugin):
         # self._pre_provision_check()
         for role_dict in self.config['roles']:
             component_name = role_dict.keys().pop()
-            if self.roles[component_name]:
-                self.chef_manager.add_to_run_list(self.roles[component_name],
-                                                  self._get_recipe_list(
-                                                      component_name))
+            if self.roles.get(component_name):
+                self.chef_manager.add_to_run_list(
+                    self.roles[component_name],
+                    self._get_recipe_list(component_name))
                 self._run_chef_on_hosts(self.roles[component_name])
                 self.chef_manager.clear_run_list(self.roles[component_name])
                 print green('Provision has completed successfully on ' +
                             str(self.roles[component_name]) + ' ran roles: ' +
                             str(self._get_recipe_list(component_name)) + '.')
+            else:
+                print yellow('Found ' + component_name + ' in config, but no' +
+                             ' host for this role!')
         print green('Provision has completed successfully. '
                     'Your cloud is now configured and ready to use.')
 

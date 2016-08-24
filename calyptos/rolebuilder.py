@@ -13,6 +13,7 @@ class RoleBuilder():
                  'node-controller',
                  'midonet-cluster',
                  'midolman',
+                 'midonet-gateway',
                  'mon-bootstrap',
                  'ceph-mons',
                  'ceph-osds',
@@ -22,6 +23,7 @@ class RoleBuilder():
                  'nginx',
                  'zookeeper',
                  'cassandra',
+                 'setup-admin-creds',
                  'all']
 
     def __init__(self, environment_file='environment.yml'):
@@ -162,6 +164,7 @@ class RoleBuilder():
                 # Eucalyptus needs to be configure once
                 if len(roles['configure-eucalyptus']) < 1:
                     roles['configure-eucalyptus'].add(clc)
+                    roles['setup-admin-creds'].add(clc)
 
             # Add UFS
             roles['user-facing'] = set(topology['user-facing'])
@@ -236,6 +239,9 @@ class RoleBuilder():
                     roles['configure-vpc'].add(mc)
 
             midonet = euca_attributes.get('midonet', None)
+            roles['midonet-gateway'] = set(midonet['gateways'])
+            for mngw in roles['midonet-gateway']:
+                roles['all'].add(mngw)
             midolman_host_mapping = midonet.get('midolman-host-mapping', None)
             for hostname, host_ip in midolman_host_mapping.iteritems():
                 roles['midolman'].add(host_ip)
