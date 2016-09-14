@@ -227,7 +227,7 @@ class RoleBuilder():
             for cs in cassandra['topology']:
                 roles['all'].add(cs)
 
-        if euca_attributes['network']['mode'] == 'VPCMIDO':
+        if euca_attributes and euca_attributes['network']['mode'] == 'VPCMIDO':
             # in VPC mode, midonet-cluster/midonet-api host is essentially a
             # CLC host where eucanetd is running, unless it changes in future
             midonet_cluster = euca_attributes['topology']['clc']
