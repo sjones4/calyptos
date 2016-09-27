@@ -180,7 +180,7 @@ class RoleBuilder():
             # Add Walrus
             if 'objectstorage' in topology:
                 provider_client = topology['objectstorage']['providerclient']
-                if provider_client:
+                if provider_client == "walrus":
                     walrus_backends = topology['objectstorage']['walrusbackend']
                     roles['walrus'] = set(walrus_backends)
                     for walrus in walrus_backends:
