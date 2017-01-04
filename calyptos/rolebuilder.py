@@ -11,10 +11,9 @@ class RoleBuilder():
                  'cluster-controller',
                  'storage-controller',
                  'node-controller',
-                 'midonet-api',
+                 'midonet-cluster',
                  'midolman',
-                 'mido-zookeeper',
-                 'mido-cassandra',
+                 'midonet-gateway',
                  'mon-bootstrap',
                  'ceph-mons',
                  'ceph-osds',
@@ -22,6 +21,9 @@ class RoleBuilder():
                  'riak-node',
                  'haproxy',
                  'nginx',
+                 'zookeeper',
+                 'cassandra',
+                 'setup-admin-creds',
                  'all']
 
     def __init__(self, environment_file='environment.yml'):
@@ -47,6 +49,18 @@ class RoleBuilder():
     def get_riak_attributes(self):
         try:
             return self.env_dict['riakcs_cluster']
+        except:
+            return None
+
+    def get_zookeeper(self):
+        try:
+            return self.env_dict['zookeeper']
+        except:
+            return None
+
+    def get_cassandra(self):
+        try:
+            return self.env_dict['cassandra']
         except:
             return None
 
@@ -81,6 +95,8 @@ class RoleBuilder():
         euca_attributes = self.get_euca_attributes()
         ceph_attributes = self.get_ceph_attributes()
         riak_attributes = self.get_riak_attributes()
+        zookeeper = self.get_zookeeper()
+        cassandra = self.get_cassandra()
 
         roles['all'] = set([])
 
@@ -141,8 +157,14 @@ class RoleBuilder():
             topology = euca_attributes['topology']
 
             # Add CLC
-            roles['clc'] = set([topology['clc-1']])
-            roles['all'].add(topology['clc-1'])
+            roles['clc'] = set(topology['clc'])
+            roles['configure-eucalyptus'] = set()
+            for clc in topology['clc']:
+                roles['all'].add(clc)
+                # Eucalyptus needs to be configure once
+                if len(roles['configure-eucalyptus']) < 1:
+                    roles['configure-eucalyptus'].add(clc)
+                    roles['setup-admin-creds'].add(clc)
 
             # Add UFS
             roles['user-facing'] = set(topology['user-facing'])
@@ -156,9 +178,13 @@ class RoleBuilder():
                     roles['all'].add(console)
 
             # Add Walrus
-            if 'walrus' in topology:
-                roles['walrus'] = set([topology['walrus']])
-                roles['all'].add(topology['walrus'])
+            if 'objectstorage' in topology:
+                provider_client = topology['objectstorage']['providerclient']
+                if provider_client == "walrus":
+                    walrus_backends = topology['objectstorage']['walrusbackend']
+                    roles['walrus'] = set(walrus_backends)
+                    for walrus in walrus_backends:
+                        roles['all'].add(walrus)
             else:
                 # No walrus defined assuming RiakCS
                 roles['walrus'] = set()
@@ -166,21 +192,24 @@ class RoleBuilder():
             # Add cluster level components
             for name in topology['clusters']:
                 roles['cluster'] = {}
-                if 'cc-1' in topology['clusters'][name]:
-                    cc = topology['clusters'][name]['cc-1']
-                    roles['cluster-controller'].add(cc)
+                if 'cc' in topology['clusters'][name]:
+                    cc = topology['clusters'][name]['cc']
+                    for c in cc:
+                        roles['cluster-controller'].add(c)
                 else:
                     raise IndexError("Unable to find CC in topology for cluster " + name)
 
-                if 'sc-1' in topology['clusters'][name]:
-                    sc = topology['clusters'][name]['sc-1']
-                    roles['storage-controller'].add(sc)
+                if 'sc' in topology['clusters'][name]:
+                    sc = topology['clusters'][name]['sc']
+                    for s in sc:
+                        roles['storage-controller'].add(s)
                 else:
                     raise IndexError("Unable to find SC in topology for cluster " + name)
 
-                roles['cluster'][name] = set([cc, sc])
+                roles['cluster'][name] = set(cc)
+                roles['cluster'][name].update(sc)
                 if 'nodes' in topology['clusters'][name]:
-                    nodes = topology['clusters'][name]['nodes'].split()
+                    nodes = topology['clusters'][name]['nodes']
                 else:
                     raise IndexError("Unable to find nodes in topology for cluster " + name)
                 for node in nodes:
@@ -188,28 +217,32 @@ class RoleBuilder():
                     roles['cluster'][name].add(node)
                 roles['all'].update(roles['cluster'][name])
 
-            # Add Midokura roles
-            midokura_attributes = self.env_dict.get('midokura', None)
-            if midokura_attributes and euca_attributes['network']['mode'] == 'VPCMIDO':
-                mido = euca_attributes['network']['config-json']['Mido']
-                mido_gw_hostname = mido.get('EucanetdHost', None)
-                midolman_host_mapping = midokura_attributes.get('midolman-host-mapping', None)
-                if midolman_host_mapping:
-                    mido_api_ip = midolman_host_mapping.get(mido_gw_hostname, None)
-                    if not mido_api_ip:
-                        raise Exception('Unable to find midonet-api ({0}) host '
-                                        'in midolman-host-mapping'.format(mido_gw_hostname))
-                    # Add the host IP for the midonet gw
-                    roles['midonet-api'].add(mido_api_ip)
-                    # Add hosts from the midonet host mapping, and all nodes
-                    for hostname, host_ip in midolman_host_mapping.iteritems():
-                        roles['midolman'].add(host_ip)
-                    for node in roles['node-controller']:
-                        roles['midolman'].add(node)
-                for host in self.env_dict.get('midokura', {}).get('zookeepers', []):
-                    roles['mido-zookeeper'].add(str(host).split(':')[0])
-                    roles['all'].add(str(host).split(':')[0])
-                for host in self.env_dict.get('midokura', {}).get('cassandras', []):
-                    roles['mido-cassandra'].add(host)
-                    roles['all'].add(host)
+        if zookeeper:
+            roles['zookeeper'] = set(zookeeper['topology'])
+            for zk in zookeeper['topology']:
+                roles['all'].add(zk)
+
+        if cassandra:
+            roles['cassandra'] = set(cassandra['topology'])
+            for cs in cassandra['topology']:
+                roles['all'].add(cs)
+
+        if euca_attributes and euca_attributes['network']['mode'] == 'VPCMIDO':
+            # in VPC mode, midonet-cluster/midonet-api host is essentially a
+            # CLC host where eucanetd is running, unless it changes in future
+            midonet_cluster = euca_attributes['topology']['clc']
+            roles['configure-vpc'] = set()
+            for mc in midonet_cluster:
+                roles['midonet-cluster'].add(mc)
+                # VPC needs to be configure once from midonet-cluster
+                if len(roles['configure-vpc']) < 1:
+                    roles['configure-vpc'].add(mc)
+
+            midonet = euca_attributes.get('midonet', None)
+            roles['midonet-gateway'] = set(midonet['gateways'])
+            for mngw in roles['midonet-gateway']:
+                roles['all'].add(mngw)
+            midolman_host_mapping = midonet.get('midolman-host-mapping', None)
+            for hostname, host_ip in midolman_host_mapping.iteritems():
+                roles['midolman'].add(host_ip)
         return roles

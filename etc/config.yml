@@ -2,13 +2,22 @@
 deployer:
   chef:
     roles:
+      - zookeeper:
+        - eucalyptus::midokura-repo
+        - zookeeper::default
+      - cassandra:
+        - eucalyptus::midokura-repo
+        - cassandra::default
       - clc:
         - eucalyptus::cloud-controller
         - eucalyptus::register-components
-      - user-facing:
-        - eucalyptus::user-facing
-      - console:
-        - eucalyptus::user-console
+      - midonet-cluster:
+        - eucalyptus::midokura-repo
+        - eucalyptus::midonet-cluster
+        - eucalyptus::midolman
+      - midolman:
+        - eucalyptus::midokura-repo
+        - eucalyptus::midolman
       - walrus:
         - eucalyptus::walrus
       - cluster-controller:
@@ -17,35 +26,13 @@ deployer:
         - eucalyptus::storage-controller
       - node-controller:
         - eucalyptus::node-controller
-      - midolman:
-        - midokura::midolman
-      - midonet-api:
-        - midokura::midolman
-        - midokura::midonet-api
-      - mon-bootstrap:
-        - ceph-cluster::mon
-      - ceph-mons:
-        - ceph-cluster::mon
-      - ceph-osds:
-        - ceph-cluster::osd
-      - riak-head:
-        - riakcs-cluster::ttyfix
-        - riak-cs::package
-        - riak
-        - sysctl
-        - riak-cs
-        - riak-cs::stanchion
-        - riak-cs::control
-        - riak-cs-create-admin-user
-        - riakcs-cluster::credentials
-        - riakcs-cluster::sync
-      - riak-node:
-        - riakcs-cluster::ttyfix
-        - riakcs-cluster::sync
-        - riak-cs::package
-        - riak
-        - sysctl
-        - riak-cs
-        - riakcs-cluster::mergecreds
-      - haproxy:
-        - haproxy::default
+      - user-facing:
+        - eucalyptus::user-facing
+      - console:
+        - eucalyptus::user-console
+      - configure-eucalyptus:
+        - eucalyptus::configure
+      - configure-vpc:
+        - eucalyptus::configure-vpc
+      - setup-admin-creds:
+        - eucalyptus::setupcreds
