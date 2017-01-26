@@ -20,16 +20,6 @@ class DeployerPlugin(object):
         """
 
     @abc.abstractmethod
-    def bootstrap(self):
-        """Format the data and return unicode text.
-
-        :param data: A dictionary with string keys and simple types as
-                     values.
-        :type data: dict(str:?)
-        :returns: Iterable producing the formatted text.
-        """
-
-    @abc.abstractmethod
     def provision(self):
         """Format the data and return unicode text.
 

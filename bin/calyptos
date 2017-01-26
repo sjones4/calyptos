@@ -107,13 +107,6 @@ def prepare(argp):
     run_driver(argp=argp, operation='prepare')
 
 
-def bootstrap(argp):
-    """
-    Init Euca DB, and backend deps prior to config
-    """
-    run_driver(argp=argp, operation='bootstrap')
-
-
 def provision(argp):
     """
     Provisions or updates the configuration of a system
@@ -227,7 +220,6 @@ if __name__ == '__main__':
 
     add_subparser(subparsers, validate)
     add_subparser(subparsers, prepare)
-    add_subparser(subparsers, bootstrap)
     add_subparser(subparsers, provision)
     add_subparser(subparsers, debug)
     add_subparser(subparsers, uninstall)
@@ -261,7 +253,6 @@ if __name__ == '__main__':
     # Map the subcommand to a function for the underlying operation to be executed...
     sub_commands = {'validate': validate,
                     'prepare': prepare,
-                    'bootstrap': bootstrap,
                     'provision': provision,
                     'execute': execute,
                     'debug': debug,
