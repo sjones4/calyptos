@@ -58,11 +58,6 @@ This step ensures that Chef is installed on all servers and that we can SSH to a
 
     calyptos prepare -p <root-ssh-password-for-deployment-systems>
 
-### Bootstrap
-This step deploys the CLC and initializes the database. Here we are getting a bit deeper and if complete, we can assume that we've are on good footing to continue deploying the rest of the cloud.
-
-    calyptos bootstrap -p <root-ssh-password-for-deployment-systems>
-  
 ### Provision
 Provisions the rest of the system or update the configuration of an existing system. If you change anything in your environment.yml, you can use this to push that change out to your cloud.
 

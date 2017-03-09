@@ -134,15 +134,14 @@ class Chef(DeployerPlugin):
                 for key in keys:
                     if key not in clc_euca_attributes['cloud-keys']:
                         print red('Unable to find cloud keys {0} in CLC attributes'.format(clc_euca_attributes[key]))
-                        print red('Re-run the bootstrap step and ensure that it is successful')
+                        print red('Re-run the prepare step and ensure that it '
+                                  'is successful')
                         exit(1)
             else:
                 print red('Unable to find cloud keys in CLC attributes')
-                print red('Re-run the bootstrap step and ensure that it is successful')
+                print red('Re-run the prepare step and ensure that it is '
+                          'successful')
                 exit(1)
-
-    def bootstrap(self):
-        pass
 
     def provision(self):
         # self._pre_provision_check()
