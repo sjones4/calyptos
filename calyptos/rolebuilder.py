@@ -239,7 +239,11 @@ class RoleBuilder():
                     roles['configure-vpc'].add(mc)
 
             midonet = euca_attributes.get('midonet', None)
-            roles['midonet-gateway'] = set(midonet['gateways'])
+            midonet_gws = midonet['Gateways']
+            mido_gw_ips = []
+            for gw in midonet_gws:
+                mido_gw_ips.append(gw['Ip'])
+            roles['midonet-gateway'] = set(mido_gw_ips)
             for mngw in roles['midonet-gateway']:
                 roles['all'].add(mngw)
             midolman_host_mapping = midonet.get('midolman-host-mapping', None)
