@@ -80,7 +80,7 @@ example_items = glob.glob('examples/*')
 
 # TODO: mbacchi pinning setuptools to 30.1.0 for now due to pip issue:
 # https://github.com/pypa/pip/issues/4104 - when it is fixed unpin setuptools
-requirements = ['fabric', 'PyYaml', 'stevedore == 1.10.0', 'sphinx',
+requirements = ['fabric', 'PyYaml', 'stevedore == 1.10.0', 'sphinx == 1.6.1',
                 'pbr >= 0.10.7', 'six >= 1.9.0', 'setuptools == 30.1.0']
 setup_requirements = ['pbr']
 # argparse is only required if python<2.7
